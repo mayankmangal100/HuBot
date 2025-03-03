@@ -1,3 +1,6 @@
+#### Steps
+Create a virtual env with python 3.10 and install dependencies from requirement.txt file
+
 #### Key Components
 
 Document Processing: Uses unstructured to extract text from PDFs
