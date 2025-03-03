@@ -1,0 +1,31 @@
+# Core dependencies
+unstructured>=0.10.0
+pdf2image>=1.16.0
+pytesseract>=0.3.10
+langchain-text-splitters>=0.0.1
+tqdm>=4.64.1
+
+# Embedding model
+sentence-transformers>=2.2.2
+torch>=2.0.0
+
+# Vector database
+qdrant-client>=1.5.0
+
+# BM25 retrieval
+rank-bm25>=0.2.2
+nltk>=3.8.1
+
+# LLM inference
+llama-cpp-python>=0.2.0
+
+# Evaluation metrics
+rouge-score>=0.1.2
+
+# System monitoring
+psutil>=5.9.0
+
+# Optional dependencies for document processing
+pillow>=9.3.0
+python-magic>=0.4.27
+python-magic-bin>=0.4.14; sys_platform == 'win32'

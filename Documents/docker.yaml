@@ -1,0 +1,42 @@
+# docker-compose.yml
+version: '3'
+services:
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - ./qdrant_data:/qdrant/storage
+  
+  embedding-service:
+    build:
+      context: ./embedding-service
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./models:/models
+  
+  llm-service:
+    build:
+      context: ./llm-service
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./models:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+  
+  api:
+    build:
+      context: ./api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - qdrant
+      - embedding-service
+      - llm-service
