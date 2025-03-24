@@ -1,0 +1,92 @@
+"""Streamlit app for RAG chatbot interface."""
+
+import streamlit as st
+import os
+from src.utils import Config
+from src.rag_system import RAGSystem
+
+def initialize_session_state():
+    """Initialize session state variables"""
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    if "rag" not in st.session_state:
+        config = Config.load_config("config/config.json")
+        st.session_state.rag = RAGSystem(config=config)
+
+def main():
+    st.set_page_config(
+        page_title="RAG Chatbot",
+        page_icon="🤖",
+        layout="wide"
+    )
+    
+    st.title("🤖 RAG Chatbot")
+    
+    # Initialize session state
+    initialize_session_state()
+    
+    # Sidebar for document upload
+    with st.sidebar:
+        st.header("Document Processing")
+        
+        # Check if vector store exists
+        # if not os.path.exists(os.path.join(os.getcwd(), "vector_store")):
+        document_path = "Documents/EveriseHandbook.pdf"
+        if os.path.exists(document_path):
+            if st.button("Process Document"):
+                with st.spinner("Processing document..."):
+                    st.session_state.rag.ingest(document_path)
+                st.success("Document processed successfully!")
+        else:
+            st.error("Document not found!")
+        # else:
+        #     st.success("Using existing vector store")
+    
+    # Chat interface
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+            if message.get("sources"):
+                with st.expander("View Sources"):
+                    st.markdown(message["sources"])
+    
+    # Chat input
+    if prompt := st.chat_input("Ask a question about the document"):
+        # Add user message
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        # Add assistant message
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            
+            # Stream the response
+            stream = True
+            if stream:
+                text = ""
+                for token in st.session_state.rag.answer_question(prompt, stream=True):
+                    text += token
+                    message_placeholder.write(text)
+                answer = text
+            else:
+                answer = st.session_state.rag.answer_question(prompt, stream=False)
+                message_placeholder.write(answer)
+            
+            # Add sources
+            sources = "\n".join([
+                f"Source: {doc['metadata']['source']} (Chunk {doc['metadata']['chunk_id']}, Score: {score:.3f})"
+                for doc, score in st.session_state.rag.last_context_docs
+            ])
+            
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": answer,
+                "sources": sources
+            })
+            
+            with st.expander("View Sources"):
+                st.markdown(sources)
+
+if __name__ == "__main__":
+    main()
