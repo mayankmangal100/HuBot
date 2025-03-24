@@ -20,45 +20,22 @@ class VectorStore:
         self.embeddings = None
         self.client = None
         self.faiss_index = None
-<<<<<<< HEAD
         self.collection_exists = False
-=======
->>>>>>> 33a8cfddf410cb489cddbf440ae59b439bbb48af
         
         self.bm25 = None
         self.tokenizer = lambda x: x.lower().split()
 
-<<<<<<< HEAD
         # Initialize Qdrant client
-=======
-        # Initialize Qdrant
->>>>>>> 33a8cfddf410cb489cddbf440ae59b439bbb48af
         if self.use_qdrant:
             try:
                 from qdrant_client import QdrantClient
                 
-<<<<<<< HEAD
                 # Use persistent storage
                 self.storage_path = os.path.join(os.getcwd(), "vector_store")
                 os.makedirs(self.storage_path, exist_ok=True)
                 
                 self.client = QdrantClient(path=self.storage_path)
                 logger.info("Initialized Qdrant client with persistent storage at: %s", self.storage_path)
-=======
-                # # Use persistent storage
-                # storage_path = os.path.join(os.getcwd(), "vector_store")
-                # os.makedirs(storage_path, exist_ok=True)
-                
-                self.client = QdrantClient(
-                    path=config["vector_store"].get("location", ":memory:")
-                )
-                logger.info("Initialized Qdrant client with persistent storage")
-                
-                # Check if collection exists
-                collections = self.client.get_collections().collections
-                collection_names = [c.name for c in collections]
-                self.collection_exists = self.collection_name in collection_names
->>>>>>> 33a8cfddf410cb489cddbf440ae59b439bbb48af
                 
             except ImportError:
                 logger.error("qdrant-client not installed. Install with: pip install qdrant-client")
@@ -71,7 +48,6 @@ class VectorStore:
             except ImportError:
                 logger.error("FAISS not installed. Install with: pip install faiss-cpu")
                 raise
-<<<<<<< HEAD
 
     def load_collection(self) -> bool:
         """Load existing collection if it exists. Returns True if collection was loaded successfully."""
@@ -121,9 +97,6 @@ class VectorStore:
             logger.error("Error loading collection: %s", str(e))
             return False
 
-=======
-                    
->>>>>>> 33a8cfddf410cb489cddbf440ae59b439bbb48af
     def add_documents(self, documents: List[Dict[str, Any]], embeddings: List[List[float]]):
         """Add documents and their embeddings to the store"""
         tracker = LatencyTracker().start()
