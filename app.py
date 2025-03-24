@@ -12,15 +12,12 @@ def initialize_session_state():
     if "rag" not in st.session_state:
         config = Config.load_config("config/config.json")
         st.session_state.rag = RAGSystem(config=config)
-<<<<<<< HEAD
         # Try to load existing data
         data_loaded = st.session_state.rag.load_existing_data()
         if data_loaded:
             st.session_state.data_loaded = True
         else:
             st.session_state.data_loaded = False
-=======
->>>>>>> 33a8cfddf410cb489cddbf440ae59b439bbb48af
 
 def main():
     st.set_page_config(
