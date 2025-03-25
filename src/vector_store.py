@@ -20,28 +20,22 @@ class VectorStore:
         self.embeddings = None
         self.client = None
         self.faiss_index = None
+        self.collection_exists = False
         
         self.bm25 = None
         self.tokenizer = lambda x: x.lower().split()
 
-        # Initialize Qdrant
+        # Initialize Qdrant client
         if self.use_qdrant:
             try:
                 from qdrant_client import QdrantClient
                 
-                # # Use persistent storage
-                # storage_path = os.path.join(os.getcwd(), "vector_store")
-                # os.makedirs(storage_path, exist_ok=True)
+                # Use persistent storage
+                self.storage_path = os.path.join(os.getcwd(), "vector_store")
+                os.makedirs(self.storage_path, exist_ok=True)
                 
-                self.client = QdrantClient(
-                    path=config["vector_store"].get("location", ":memory:")
-                )
-                logger.info("Initialized Qdrant client with persistent storage")
-                
-                # Check if collection exists
-                collections = self.client.get_collections().collections
-                collection_names = [c.name for c in collections]
-                self.collection_exists = self.collection_name in collection_names
+                self.client = QdrantClient(path=self.storage_path)
+                logger.info("Initialized Qdrant client with persistent storage at: %s", self.storage_path)
                 
             except ImportError:
                 logger.error("qdrant-client not installed. Install with: pip install qdrant-client")
@@ -54,7 +48,55 @@ class VectorStore:
             except ImportError:
                 logger.error("FAISS not installed. Install with: pip install faiss-cpu")
                 raise
-                    
+
+    def load_collection(self) -> bool:
+        """Load existing collection if it exists. Returns True if collection was loaded successfully."""
+        if not self.use_qdrant or not self.client:
+            return False
+
+        try:
+            # Check if collection exists
+            collections = self.client.get_collections().collections
+            collection_names = [c.name for c in collections]
+            self.collection_exists = self.collection_name in collection_names
+            
+            if not self.collection_exists:
+                logger.info("No existing collection found with name: %s", self.collection_name)
+                return False
+            
+            # Load collection data
+            points = self.client.scroll(
+                collection_name=self.collection_name,
+                limit=10000  # Adjust based on your needs
+            )[0]
+            
+            if not points:
+                logger.info("Collection exists but is empty: %s", self.collection_name)
+                return False
+            
+            # Reconstruct documents and embeddings
+            self.documents = []
+            self.embeddings = []
+            for point in points:
+                self.documents.append({
+                    "text": point.payload["text"],
+                    "metadata": point.payload["metadata"]
+                })
+                self.embeddings.append(point.vector)
+            
+            # Initialize BM25 with loaded documents
+            from rank_bm25 import BM25Okapi
+            texts = [doc["text"] for doc in self.documents]
+            tokenized_texts = [self.tokenizer(text) for text in texts]
+            self.bm25 = BM25Okapi(tokenized_texts)
+            
+            logger.info("Successfully loaded collection with %d documents", len(self.documents))
+            return True
+            
+        except Exception as e:
+            logger.error("Error loading collection: %s", str(e))
+            return False
+
     def add_documents(self, documents: List[Dict[str, Any]], embeddings: List[List[float]]):
         """Add documents and their embeddings to the store"""
         tracker = LatencyTracker().start()

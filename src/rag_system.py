@@ -36,6 +36,10 @@ class RAGSystem:
         self.conversation_history = ""
         self.last_context_docs = []
         
+    def load_existing_data(self) -> bool:
+        """Load existing vector store data if available. Returns True if data was loaded successfully."""
+        return self.vector_store.load_collection()
+        
     def ingest(self, file_path: str):
         """Process a document and add it to the vector store"""
         # Extract text

@@ -23,14 +23,16 @@ class EmbeddingModel:
             self.model = SentenceTransformer(model_name)
             self.model.to(self.device)
             
-            # Try to apply dynamic quantization
+            # Apply dynamic quantization to individual modules instead of whole model
             try:
                 logger.info("Applying dynamic quantization to embedding model")
-                torch.quantization.quantize_dynamic(
-                    self.model,
-                    {torch.nn.Linear},
-                    dtype=torch.qint8
-                )
+                for name, module in self.model.named_modules():
+                    if isinstance(module, torch.nn.Linear):
+                        module = torch.quantization.quantize_dynamic(
+                            module,
+                            {torch.nn.Linear},
+                            dtype=torch.qint8
+                        )
             except Exception as e:
                 logger.warning(f"Quantization failed: {str(e)}")
                 
