@@ -12,6 +12,12 @@ def initialize_session_state():
     if "rag" not in st.session_state:
         config = Config.load_config("config/config.json")
         st.session_state.rag = RAGSystem(config=config)
+        # Try to load existing data
+        data_loaded = st.session_state.rag.load_existing_data()
+        if data_loaded:
+            st.session_state.data_loaded = True
+        else:
+            st.session_state.data_loaded = False
 
 def main():
     st.set_page_config(
@@ -29,18 +35,25 @@ def main():
     with st.sidebar:
         st.header("Document Processing")
         
-        # Check if vector store exists
-        # if not os.path.exists(os.path.join(os.getcwd(), "vector_store")):
         document_path = "Documents/EveriseHandbook.pdf"
-        if os.path.exists(document_path):
-            if st.button("Process Document"):
-                with st.spinner("Processing document..."):
+        
+        # Show appropriate UI based on data state
+        if st.session_state.data_loaded:
+            st.success("Using existing vector store")
+            if st.button("Reprocess Document"):
+                with st.spinner("Reprocessing document..."):
                     st.session_state.rag.ingest(document_path)
-                st.success("Document processed successfully!")
+                st.success("Document reprocessed successfully!")
         else:
-            st.error("Document not found!")
-        # else:
-        #     st.success("Using existing vector store")
+            if os.path.exists(document_path):
+                st.warning("No existing data found. Please process the document.")
+                if st.button("Process Document"):
+                    with st.spinner("Processing document..."):
+                        st.session_state.rag.ingest(document_path)
+                        st.session_state.data_loaded = True
+                    st.success("Document processed successfully!")
+            else:
+                st.error("Document not found!")
     
     # Chat interface
     for message in st.session_state.messages:

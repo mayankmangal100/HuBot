@@ -80,8 +80,10 @@ Answer: [/INST]"""
                         yield token
                     else:
                         break
-                print()
+                print("not ablt to generate response ")
                 answer = "".join(full_response)
+                if not answer:
+                    answer = "I apologize, but I was unable to generate a response. Please try rephrasing your question."
             else:
                 if response["choices"] and response["choices"][0]["text"]:
                     answer = response["choices"][0]["text"].strip()

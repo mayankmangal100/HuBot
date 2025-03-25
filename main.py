@@ -11,18 +11,21 @@ def main():
     # Initialize RAG system
     rag = RAGSystem(config=config)
     
-    # Check if documents are already processed
+    # Try to load existing data
     document_path = "Documents/EveriseHandbook.pdf"
-    # if not os.path.exists(os.path.join(os.getcwd(), "vector_store")):
-    if not os.path.exists(document_path):
-        logger.error(f"Document not found: {document_path}")
-        return
-        
-    # Process document
-    logger.info(f"Processing document: {document_path}")
-    rag.ingest(document_path)
-    # else:
-    #     logger.info("Using existing vector store")
+    data_loaded = rag.load_existing_data()
+    
+    if data_loaded:
+        logger.info("Successfully loaded existing vector store")
+    else:
+        logger.info("No existing data found")
+        if not os.path.exists(document_path):
+            logger.error(f"Document not found: {document_path}")
+            return
+            
+        # Process document
+        logger.info(f"Processing document: {document_path}")
+        rag.ingest(document_path)
     
     # Interactive loop
     try:
@@ -39,7 +42,9 @@ def main():
             else:
                 answer = rag.answer_question(query, stream=False)
                 print(f"\nAnswer: {answer}")
-            print("\nSources:")
+            
+            # Print sources
+            print("\n\nSources:")
             for doc, score in rag.last_context_docs:
                 print(f"Source: {doc['metadata']['source']} (Chunk {doc['metadata']['chunk_id']}, Score: {score:.3f})")
                 
