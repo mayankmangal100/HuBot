@@ -33,8 +33,17 @@ class VectorStore:
                 # Use persistent storage
                 self.storage_path = os.path.join(os.getcwd(), "vector_store")
                 os.makedirs(self.storage_path, exist_ok=True)
+                # Clean up any existing lock files
+                lock_file = os.path.join(self.storage_path, "lock.file")
+                if os.path.exists(lock_file):
+                    os.remove(lock_file)
+                    logger.info("Removed existing lock file")
                 
-                self.client = QdrantClient(path=self.storage_path)
+                self.client = QdrantClient(
+                    path=self.storage_path,
+                    force_disable_multiple_clients_check=True  # Allow multiple clients
+                )
+                
                 logger.info("Initialized Qdrant client with persistent storage at: %s", self.storage_path)
                 
             except ImportError:

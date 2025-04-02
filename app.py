@@ -82,6 +82,19 @@ def main():
                     text += token
                     message_placeholder.write(text)
                 answer = text
+                
+                # Update conversation history after streaming completes
+                # Get the last streamed response from LLM interface
+                last_response = st.session_state.rag.llm.get_last_streamed_response()
+                
+                # Update conversation history with the complete response
+                st.session_state.rag.query_rewriter.add_exchange(
+                    query=prompt,
+                    rewritten_query=st.session_state.rag.last_retrieval_query,
+                    answer=last_response,
+                    query_embedding=st.session_state.rag.last_query_embedding,
+                    context_docs=st.session_state.rag.last_context_docs
+                )
             else:
                 answer = st.session_state.rag.answer_question(prompt, stream=False)
                 message_placeholder.write(answer)
