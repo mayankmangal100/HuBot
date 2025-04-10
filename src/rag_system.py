@@ -7,7 +7,7 @@ from src.text_splitter import TextSplitter
 from src.embedding_model import EmbeddingModel
 from src.vector_store import VectorStore
 from src.llm_interface import LLMInterface
-from src.rewrite_query import QueryRewriter
+# from src.rewrite_query import QueryRewriter
 from src.utils import logger
 
 class RAGSystem:
@@ -28,10 +28,10 @@ class RAGSystem:
             device=config["model"]["device"]
         )
         self.vector_store = VectorStore(config)
-        self.query_rewriter = QueryRewriter(
-            query_rewrite_model=config.get("query_rewrite_model", "MBZUAI/LaMini-Flan-T5-248M"),
-            device=config["model"]["device"]
-        )
+        # self.query_rewriter = QueryRewriter(
+        #     query_rewrite_model=config.get("query_rewrite_model", "MBZUAI/LaMini-Flan-T5-248M"),
+        #     device=config["model"]["device"]
+        # )
         self.llm = LLMInterface(config=config)
         
         # Store context and query information
@@ -71,13 +71,14 @@ class RAGSystem:
             self.last_query_embedding = query_embedding  # Store for streaming case
             
             # Process query through rewriter
-            query_info = self.query_rewriter.process_query(
-                query=question,
-                query_embedding=query_embedding
-            )
+            # query_info = self.query_rewriter.process_query(
+            #     query=question,
+            #     query_embedding=query_embedding
+            # )
             
             # Use rewritten query for retrieval if available
-            retrieval_query = query_info["rewritten_query"] or question
+            # retrieval_query = query_info["rewritten_query"] or question
+            retrieval_query = question
             self.last_retrieval_query = retrieval_query  # Store for streaming case
             
             # Retrieve relevant documents

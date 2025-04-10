@@ -19,7 +19,7 @@ class LLMInterface:
         # Optimize context window based on available memory
         # available_ram = psutil.virtual_memory().available / (1024 * 1024 * 1024)  # GB
         # self.n_ctx = max(2048, min(8192, int(available_ram * 256))) # Ensure context window is at least 2048
-        self.n_ctx = 1024
+        self.n_ctx = 2048
         # Load model with optimizations
         self._load_model()
         
@@ -42,11 +42,12 @@ class LLMInterface:
                 model_path=model_path,
                 n_threads=self.n_threads,
                 n_ctx=self.n_ctx,
-                n_batch=256,      # Increased batch size for better throughput
+                n_batch=512,      # Increased batch size for better throughput
                 verbose=False,
                 use_mlock=True,   # Lock memory to prevent swapping
                 use_mmap=True,    # Use memory mapping for faster loading
-                n_gpu_layers=0    # CPU-only mode
+                n_gpu_layers=0,
+                seed=-1    # CPU-only mode
             )
             
             logger.info(
@@ -64,14 +65,23 @@ class LLMInterface:
     
     def _create_prompt(self, question: str, context: str) -> str:
         """Create an optimized prompt format."""
-        return f"""[INST] You are a helpful AI assistant. Use the following context to answer the question. Be direct and concise.
+        system_prompt = """You are a helpful HR assistant. Follow these rules strictly:
+- Use only the information from the Context.
+- If an answer can be inferred from the Context (e.g., based on numbers, limits, dates), do so and explain briefly.
+- DO NOT invent any facts not supported by the Context.
+- If nothing at all is relevant to the question, respond with: "No relevant information found in the handbook."
+- Avoid saying 'context' — say 'the handbook' instead.
+- Be concise, professional, and accurate."""
+        
+        prompt = f"""<s>[INST] {system_prompt}
+
+Question: {question}
 
 Context:
 {context}
 
-Question: {question}
-
-Answer: [/INST]"""
+Answer:[/INST] """
+        return prompt
     
     def generate_answer(
         self,
@@ -100,7 +110,9 @@ Answer: [/INST]"""
             params = {
                 "max_tokens": max_tokens,
                 "temperature": self.config["llm"]["temperature"],
-                "stop": ["</s>"]
+                "stop": ["</s>", "[INST]", "Context:", "Question:", "[/INST]"],
+                "top_p": self.config["llm"]["top_p"],
+                "top_k": self.config["llm"]["top_k"],
             }
             
             # Generate response
