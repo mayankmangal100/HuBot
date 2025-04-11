@@ -2,6 +2,7 @@
     "model": {
         "embedding_model": "BAAI/bge-base-en-v1.5",
         "llm_model_path": "Qwen2.5-1.5B-Instruct.Q5_K_M_MP.gguf",
+        "cross_encoder_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
         "device": "cpu"
     },
     "vector_store": {
@@ -11,7 +12,7 @@
         "use_faiss_fallback": false
     },
     "retrieval": {
-        "top_k": 3,
+        "top_k": 5,
         "alpha": 0.5
     },
     "chunking": {
@@ -20,11 +21,11 @@
     },
     "llm": {
         "max_tokens": 256,
-        "temperature": 0.1,
-        "top_p": 0.8,
-        "repeat_penalty": 1.5,
-        "top_k": 20,
-        "context_length": 4096,
+        "temperature": 0.15,
+        "top_p": 0.85,
+        "repeat_penalty": 1.4,
+        "top_k": 30,
+        "context_length": 2048,
         "batch_size": 512,
         "threads": 4,
         "min_p": 0.05

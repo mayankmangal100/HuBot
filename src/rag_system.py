@@ -66,9 +66,12 @@ class RAGSystem:
         
         try:
             tracker = LatencyTracker().start()
+
+            dense_retrieval_statement = self.llm.rewrite_query_to_dense_statement(question)
             # Get query embedding
+            dense_query_embedding = self.embedding_model.embed_query(dense_retrieval_statement)
             query_embedding = self.embedding_model.embed_query(question)
-            self.last_query_embedding = query_embedding  # Store for streaming case
+            self.last_query_embedding = dense_query_embedding  # Store for streaming case
             
             # Process query through rewriter
             # query_info = self.query_rewriter.process_query(
@@ -83,8 +86,8 @@ class RAGSystem:
             
             # Retrieve relevant documents
             results = self.vector_store.hybrid_search(
-                query=retrieval_query,
-                query_embedding=query_embedding,
+                query=dense_retrieval_statement,
+                query_embedding=dense_query_embedding,
                 top_k=self.config["retrieval"]["top_k"]
             )
             
@@ -92,11 +95,19 @@ class RAGSystem:
             self.last_context_docs = results
             
             # Format context with clear structure
-            context_parts = []
-            for i, (doc, score) in enumerate(results, 1):
-                context_parts.append(f"[Excerpt {i}]\n{doc['text'].strip()}")
-            
-            context = "\n\n".join(context_parts)
+            context = ""
+            for i, doc in enumerate(results, 1):
+                # Limit each doc to ~500 chars to reduce context size
+                doc_text = doc["text"]
+                doc_section = doc["metadata"]["section"]
+                if len(doc_text) > 500:
+                    doc_text = doc_text[:497] + "..."
+                context += f"\nDoc {i} {doc_section}: {doc_text}\n"
+            # context_parts = []
+            # for i, (doc, score) in enumerate(results, 1):
+            #     context_parts.append(f"[Excerpt {i}]\n{doc['text'].strip()}")
+
+            # context = "\n\n".join(context_parts)
             
             if not context.strip():
                 return "I couldn't find any relevant information to answer your question."
@@ -119,7 +130,7 @@ class RAGSystem:
                     query=question,
                     rewritten_query=retrieval_query,
                     answer=answer,
-                    query_embedding=query_embedding,
+                    query_embedding=dense_query_embedding,
                     context_docs=self.last_context_docs
                 )
             

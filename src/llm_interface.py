@@ -62,16 +62,32 @@ class LLMInterface:
         except Exception as e:
             logger.error(f"Error loading model: {str(e)}")
             raise
+
+    def rewrite_query_to_dense_statement(self, question: str) -> str:
+        """Rewrites a user question into a dense factual statement"""
+        tracker = LatencyTracker().start()
+
+        prompt = f"Convert the question to a formal HR related statement:\n\nQuestion: {question}\nStatement:"
+
+
+        response = self.llm(
+            prompt,
+            max_tokens=70,
+            temperature=0.1,
+            stop=["</s>"]
+        )
+
+        statement = response["choices"][0]["text"].strip()
+        if not statement or len(statement) < 5:
+            statement = question
+
+        tracker.end("Generating dense statement")
+        logger.info(f"Rewritten to statement: {str(question)} → {str(statement)}")
+        return statement
     
     def _create_prompt(self, question: str, context: str) -> str:
         """Create an optimized prompt format."""
-        system_prompt = """You are a helpful HR assistant. Follow these rules strictly:
-- Use only the information from the Context.
-- If an answer can be inferred from the Context (e.g., based on numbers, limits, dates), do so and explain briefly.
-- DO NOT invent any facts not supported by the Context.
-- If nothing at all is relevant to the question, respond with: "No relevant information found in the handbook."
-- Avoid saying 'context' — say 'the handbook' instead.
-- Be concise, professional, and accurate."""
+        system_prompt = """You are an HR assistant for Everise, helping employees through the Everise Handbook. Answer the question based on the provided context. .Be concise, professional, and accurate."""
         
         prompt = f"""<s>[INST] {system_prompt}
 

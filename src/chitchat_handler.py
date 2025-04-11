@@ -1,14 +1,26 @@
+import re
+
 class ChitChatHandler:
     def __init__(self):
         self.keywords = [
-            "hi", "hello", "how are you", "good morning", "good evening",
-            "what's up", "how's it going", "thank you", "bye", "see you"
+            r"^hi$",
+            r"^hello$",
+            r"^how are you$",
+            r"^good morning$",
+            r"^good evening$",
+            r"^what's up$",
+            r"^how's it going$",
+            r"^thank you$",
+            r"^thanks$",
+            r"^bye$",
+            r"^see you$"
         ]
 
+
     def is_chitchat(self, query: str) -> bool:
-        """Check if the query is likely a chit-chat."""
-        q = query.lower()
-        return any(kw in q for kw in self.keywords)
+        q = normalize_query(query)
+        return any(re.fullmatch(pattern, q) for pattern in self.keywords)
+    
 
     def handle(self, query: str) -> str:
         """Return a canned response based on chit-chat type."""
@@ -31,3 +43,6 @@ class ChitChatHandler:
         else:
             return "I'm here to answer your questions!"
 
+def normalize_query(self, q: str) -> str:
+# Remove punctuation and extra spaces
+    return re.sub(r'[^\w\s]', '', q.strip().lower())

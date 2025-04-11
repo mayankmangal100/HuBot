@@ -88,31 +88,31 @@ def main():
                 last_response = st.session_state.rag.llm.get_last_streamed_response()
                 
                 # Update conversation history with the complete response
-                st.session_state.rag.query_rewriter.add_exchange(
-                    query=prompt,
-                    rewritten_query=st.session_state.rag.last_retrieval_query,
-                    answer=last_response,
-                    query_embedding=st.session_state.rag.last_query_embedding,
-                    context_docs=st.session_state.rag.last_context_docs
-                )
+                # st.session_state.rag.query_rewriter.add_exchange(
+                #     query=prompt,
+                #     rewritten_query=st.session_state.rag.last_retrieval_query,
+                #     answer=last_response,
+                #     query_embedding=st.session_state.rag.last_query_embedding,
+                #     context_docs=st.session_state.rag.last_context_docs
+                # )
             else:
                 answer = st.session_state.rag.answer_question(prompt, stream=False)
                 message_placeholder.write(answer)
             
             # Add sources
-            sources = "\n".join([
-                f"Source: {doc['metadata']['source']} (Chunk {doc['metadata']['chunk_id']}, Score: {score:.3f})"
-                for doc, score in st.session_state.rag.last_context_docs
-            ])
+            # sources = "\n".join([
+            #     f"Source: {doc['metadata']['source']} (Chunk {doc['metadata']['chunk_id']}, Score: {score:.3f})"
+            #     for doc, score in st.session_state.rag.last_context_docs
+            # ])
             
             st.session_state.messages.append({
                 "role": "assistant",
                 "content": answer,
-                "sources": sources
+                "sources": "sources"
             })
             
             with st.expander("View Sources"):
-                st.markdown(sources)
+                st.markdown("sources")
 
 if __name__ == "__main__":
     main()

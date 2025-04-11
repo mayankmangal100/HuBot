@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Tuple, Optional
 from src.utils import LatencyTracker
 from src.utils import logger
 import os
+from sentence_transformers import CrossEncoder
 
 class VectorStore:
     """Vector store with hybrid search capabilities"""
@@ -24,6 +25,7 @@ class VectorStore:
         
         self.bm25 = None
         self.tokenizer = lambda x: x.lower().split()
+        self.cross_encoder = CrossEncoder(config["model"]["cross_encoder_model"])
 
         # Initialize Qdrant client
         if self.use_qdrant:
@@ -177,6 +179,14 @@ class VectorStore:
                     limit=top_k
                 )
                 
+                semantic_results = []
+                for res in results:
+                    semantic_results.append({
+                        "id": res.id,
+                        "text": res.payload["text"],
+                        "metadata": res.payload["metadata"],
+                        "score": res.score
+                    })
                 # Extract scores and documents
                 dense_scores = [hit.score for hit in results]
                 doc_indices = [hit.id for hit in results]
@@ -198,20 +208,49 @@ class VectorStore:
         # Sparse search with BM25
         query_tokens = self.tokenizer(query)
         sparse_scores = self.bm25.get_scores(query_tokens)
+
+         # Get top_k documents
+        top_indices = sparse_scores.argsort()[-top_k:][::-1]
+
+        bm25_results = []
+        for i in top_indices:
+            bm25_results.append({
+                "id": i,
+                "text": self.documents[i]["text"],
+                "metadata": self.documents[i]["metadata"],
+                "score": float(sparse_scores[i])  # Convert numpy float to Python float
+            })
         
+        doc_dict = {}
+        for doc in semantic_results + bm25_results:
+            key = doc["text"]  # or use `doc["id"]` if unique across both
+            if key not in doc_dict:
+                doc_dict[key] = doc
+
+        combined_docs = list(doc_dict.values())
+
+        # Step 3: Re-rank with cross-encoder
+        cross_inp = [(query, doc["text"]) for doc in combined_docs]
+        scores = self.cross_encoder.predict(cross_inp)
+
+        for doc, score in zip(combined_docs, scores):
+            doc["reranker_score"] = float(score)
+
+        # Step 4: Sort by re-ranker score
+        ranked_results = sorted(combined_docs, key=lambda x: x["reranker_score"], reverse=True)[:top_k]
         # Combine scores
-        final_results = []
-        for i, dense_score in zip(doc_indices, dense_scores):
-            doc = self.documents[i]
-            sparse_score = sparse_scores[i]
+        # final_results = []
+        # for i, dense_score in zip(doc_indices, dense_scores):
+        #     doc = self.documents[i]
+        #     sparse_score = sparse_scores[i]
             
-            # Hybrid score
-            hybrid_score = alpha * dense_score + (1 - alpha) * sparse_score
+        #     # Hybrid score
+        #     hybrid_score = alpha * dense_score + (1 - alpha) * sparse_score
             
-            final_results.append((doc, hybrid_score))
+        #     final_results.append((doc, hybrid_score))
             
-        # Sort by score
-        final_results.sort(key=lambda x: x[1], reverse=True)
+        # # Sort by score
+        # final_results.sort(key=lambda x: x[1], reverse=True)
         
         tracker.end(f"Hybrid search (top-{top_k})")
-        return final_results
+        return ranked_results
